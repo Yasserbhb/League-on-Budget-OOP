@@ -101,7 +101,8 @@ class BuffAbility(Abilities):
         else :
             print(f"{target.name} is already buffed")
             return False
-   
+
+     
 
         print(f"{self.name}: {target.name} is buffed for 5 turns!")
         user.mana -= self.mana_cost

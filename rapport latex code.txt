@@ -1,0 +1,210 @@
+\documentclass[10pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{geometry}
+\geometry{a4paper, margin=1in}
+\usepackage{graphicx}
+\usepackage{fancyhdr}
+\usepackage{titling}
+\usepackage{tocloft}
+\usepackage{titlesec}
+\usepackage{longtable}
+
+% Configuration des marges et des en-têtes
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0.5pt}
+\lhead{Programmation Python Orienté Objet}
+\rhead{2024/2025}
+\cfoot{\thepage}
+
+% Réduction supplémentaire de la taille des titres
+\titleformat{\section}{\normalfont\normalsize\bfseries}{\thesection}{1em}{\MakeUppercase}
+\titleformat{\subsection}{\normalfont\small\bfseries}{\thesubsection}{1em}{}
+\titleformat{\subsubsection}{\normalfont\footnotesize\bfseries}{\thesubsubsection}{1em}{}
+
+% Logo et titre
+\title{
+    \vfill % Ajout pour centrer verticalement
+    \begin{center}
+        \includegraphics[width=0.3\textwidth]{logo.png}\\[1cm]
+        \textbf{\LARGE Programmation Objet Python}\\[0.8cm]
+        \textbf{\Large Projet : Conception et Implémentation d'un Jeu de Tactique Tour par Tour en 2D}\\[0.8cm]
+        \textbf{\Huge League On Budget}\\[1cm]
+        \textbf{M1 Ingénierie des Systèmes Intelligents (ISI1-1)}\\[1cm]
+    \end{center}
+    \vfill % Ajout pour centrer verticalement
+}
+
+\author{
+    \begin{center}
+        \vspace{-1cm}
+        \renewcommand{\arraystretch}{1.2}
+        \begin{tabular}{ll}
+            \textbf{BOUHAI Yasser} & 21200183 \\
+            \textbf{CHELFAT Aya}   & 21416394 \\
+            \textbf{HANAFI Ghozlene} & 21216169 \\
+        \end{tabular}\\[1cm]
+    \end{center}
+}
+\date{16/12/2024}
+
+\begin{document}
+
+\begin{titlepage}
+\maketitle
+\vfill % Centre le texte restant vers le bas
+\begin{center}
+    \textbf{\Large Sorbonne Université}\\[0.8cm]
+    \textbf{\Large Encadrants : Louis Annabi, Florence Ossart}
+\end{center}
+\vfill % Équilibre avec le haut de la page
+\end{titlepage}
+
+
+
+\tableofcontents
+\newpage
+
+
+\section{R\'épartition des T\^aches entre les Membres du Groupe}
+\begin{longtable}{|p{2.5cm}|p{3cm}|p{8.5cm}|}
+\hline
+\textbf{Class} & \textbf{Contributor(s)} & \textbf{Methods} \\
+\hline
+\raggedright \texttt{Unit} & 
+\raggedright Aya, Ghozlene, Yasser & 
+\raggedright Aya : \texttt{create\_units}; Ghozlene : \texttt{in\_range}, \texttt{move}; Yasser : \texttt{react\_to\_attack}, \texttt{attack}, \texttt{update\_buffs\_and\_debuffs}, \texttt{revert\_buff}, \texttt{revert\_debuff}, \texttt{draw} \\
+\hline
+\raggedright \texttt{MonsterUnit \& NexusUnit} & 
+\raggedright Yasser & 
+\raggedright \texttt{react\_to\_attack} (overwritten in NexusUnit), \texttt{draw} (overwritten in MonsterUnit) \\
+\hline
+\raggedright \texttt{Sounds} & 
+\raggedright Ghozlene & 
+\raggedright \texttt{play}, \texttt{set\_volume}, \texttt{stop} \\
+\hline
+\raggedright \texttt{Abilities} & 
+\raggedright Aya, Yasser & 
+\raggedright \texttt{use}, \texttt{get\_targets\_in\_aoe}, \texttt{apply\_effect}, \texttt{reduce\_cooldown} \\
+\hline
+\raggedright \texttt{BuffAbility \& DebuffAbility} & 
+\raggedright Aya & 
+\raggedright \texttt{use} \\
+\hline
+\raggedright \texttt{DamageHeal\ Ability} & 
+\raggedright Yasser & 
+\raggedright \texttt{use} \\
+\hline
+\raggedright \texttt{Tile} & 
+\raggedright Yasser & 
+\raggedright \texttt{draw\_tile} \\
+\hline
+\raggedright \texttt{Pickup} & 
+\raggedright Yasser & 
+\raggedright \texttt{initialize}, \texttt{update}, \texttt{spawn\_single\_pickup}, \texttt{draw\_pickups}, \texttt{picked\_used}, \texttt{remove\_pickup}, \texttt{get\_random\_spawn\_location} \\
+\hline
+\raggedright \texttt{Grid} & 
+\raggedright Ghozlene, Yasser & 
+\raggedright \texttt{create\_grid} (by both), \texttt{draw} (Yasser) \\
+\hline
+\raggedright \texttt{Highlight} & 
+\raggedright Yasser & 
+\raggedright \texttt{highlight\_range}, \texttt{update\_fog\_visibility}, \texttt{draw\_fog}, \texttt{show\_buff\_animation} \\
+\hline
+\raggedright \texttt{Game} & 
+\raggedright Aya, Ghozlene, Yasser & 
+\raggedright Aya : \texttt{draw\_abilities\_bar}; Ghozlene : \texttt{log\_event}, \texttt{draw\_info\_panel}; Yasser : \texttt{draw\_units}, \texttt{basic\_attack}, \texttt{advance\_to\_next\_unit}, \texttt{handle\_turn}, \texttt{get\_respawn\_location}, \texttt{manage\_keys}, \texttt{draw\_key\_counts}, \texttt{main\_menu}, \texttt{show\_menu}, \texttt{check\_game\_over}, \texttt{game\_over\_screen}, \texttt{run} \\
+\hline
+\end{longtable}
+
+
+\section{Fonctions de Base et Supplémentaires}
+Dans cette section, nous décrivons les fonctions de base nécessaires au fonctionnement du jeu ainsi que les fonctionnalités supplémentaires implémentées pour enrichir l'expérience utilisateur.
+
+\subsection{Fonctionnalités de Base}
+\begin{itemize}
+    \item \textbf{Unités :} Implémentation de 5 types d'unités(joueurs) et 2 autres unités supplémentaires(Monster et Base) avec des caractéristiques distinctes : points de vie(HP), attaque, défense.
+    
+    \item \textbf{Compétences :} Trois types de compétences(abilities) définies avec des caractéristiques comme puissance, portée, zone d’effet et précision. Ces compétences sont de type attaque(attack) et soin(heal).
+    
+    \item \textbf{Cases :} Le terrain est composé de ces types de cases: eau,herbe,pierre,buisson,base
+    
+    \item \textbf{Déplacement :} Les unités peuvent se déplacer selon leur périmètre de déplacement, parcourant un nombre de cases déterminé et ou il a été ajouté que l'eau diminue le périmètre de mouvement.
+    
+    \item \textbf{Portée des compétences :} Les compétences ont des portées variées.
+    
+    \item \textbf{Zone d’effet :} Une compétence qui agit sur une zone entière infligeant des dégâts à toutes les unités présentes.
+    
+    \item \textbf{Calcul des dégâts :} Les dégâts infligés sont calculés à partir de la puissance de la compétence, de la statistique d’attaque et de la statistique de défense de l’unité ciblée avec une formule spécifique.
+\end{itemize}
+
+\subsection{Fonctionnalités Supplémentaires}
+\begin{itemize}
+    \item \textbf{Objets :} Les unités peuvent ramasser des potions sur le terrain qui sont mises aléatoirement à chaque tour. Une fois ramassés, chaque potion donne un effet spécifique à l'unité.
+    
+    \item \textbf{Visibilité des ennemis :} Les unités d'équipes adverses ne sont pas visibles les unes pour les autres sauf si elles sont présentes dans le champs de vision d'une unité de son équipe (Fog).
+    
+    \item \textbf{Animations :} Implémentation d’animations spécifiques pour marquer la défaite des monstres.
+    
+    \item \textbf{Réincarnation :} Les unités peuvent revenir à la vie après leur mort, avec un mécanisme de réincarnation.
+    
+    \item \textbf{Système de clés :} Ajout d’un système de collecte de clés, nécessaire pour abattre les bases et remporter la victoire :  La base ennemie ne peut pas être attaquée tant que trois clés n'ont pas été collectées par les unités du joueur.
+      \item \textbf{Système d'assassinat :} Quand un joueur entre dans un buisson il devient invisible même si il est dans le champs de vision de l'ennemi ,et si un ennemi y entre elle sera tuée automatiquement 
+
+      \item \textbf{Types de dégats et de défense}:   On a introduit des dégats physiques et dégats magiques.
+      
+      
+\end{itemize}
+
+
+\section{Explication des Relations Utilisées dans les Diagrammes UML}
+Les diagrammes UML illustrent les relations entre les classes principales du projet. Nous utilisons principalement les relations suivantes :
+\begin{itemize}
+   \item \textbf{Relation d'héritage}
+
+\textbf{MonsterUnit $\rightarrow$ Unit et BaseUnit $\rightarrow$ Unit:} Les deux classes héritent de \texttt{Unit}. Elle surchargent les méthodes \texttt{react\_to\_attack} et \texttt{draw} réspéctivement.
+
+
+
+
+\textbf{BuffAbility \& DebuffAbility \& DamageHealAbility $\rightarrow$ Abilities :} Les classes \texttt{BuffAbility} et \texttt{DebuffAbility} spécialisent \texttt{Abilities} en redéfinissant la méthode \texttt{use} pour appliquer respectivement des buffs ou des debuffs, tout en conservant les attributs communs comme le coût en mana et le \textit{cooldown}.
+
+    \item \textbf{Composition}
+
+
+\textbf{Unit $\rightarrow$ Abilities :}Une unité possède une ou plusieurs capacités (Abilities), comme attaquer ou soigner. Cela permet à l’unité d’agir et d’interagir avec d’autres unités de manière flexible..
+
+\textbf{Grid $\rightarrow$ Tile :}Chaque \texttt{Grid} contient des instances de \texttt{Tile}, qui forment la structure de la grille. Les \texttt{Tile} dépendent fortement de \texttt{Grid}, et si celle-ci est détruite, les \texttt{Tile} seront également détruites.
+
+\textbf{Game $\rightarrow$ Pickup :} La relation entre \texttt{Game} et \texttt{Pickup} est une composition, car \texttt{Game} crée, gère et contrôle entièrement la logique et l'affichage des \texttt{Pickup}, qui ne peuvent pas exister indépendamment de \texttt{Game}.
+
+
+\textbf{Game $\rightarrow$ Sounds :} 
+\texttt{Sounds} est utilisé par \texttt{Game} . Si \texttt{Game} est supprimé, \texttt{Sounds} ne peut pas exister et être utilisé ailleurs.
+
+    \item \textbf{Agrégation} : 
+    
+   
+   \textbf{Game $\rightarrow$ Highlight :}La classe \texttt{Game} utilise \texttt{Highlight} pour gérer les zones visibles ou interactives, comme les portées d’attaque ou de déplacement.\texttt{Highlight} est indépendant et peut exister sans \texttt{Game}, mais il est essentiel pour l’affichage interactif.
+
+
+\textbf{Game $\rightarrow$ Unit :} La classe \texttt{Game} gère les unités (\texttt{Unit}), qui représentent les personnages ou ennemis du jeu. Les unités sont indépendantes de \texttt{Game}, mais elles n'ont un rôle que dans le contexte du jeu, où leurs actions sont orchestrées.
+
+
+
+ \item \textbf{Association} : 
+
+
+
+\textbf{Game $\rightarrow$ Grid :} La classe \texttt{Game} utilise \texttt{Grid} pour gérer les déplacements et actions sur le terrain, mais \texttt{Grid} reste indépendant et réutilisable dans d’autres contextes, comme un éditeur de cartes..
+
+\end{itemize}
+\section{Classe Abstraite \texttt{Abilities}}
+
+La classe \texttt{Abilities} a été conçue comme une classe abstraite pour établir une structure commune à toutes les compétences (abilities) du jeu, tout en offrant une grande flexibilité dans leur implémentation. Elle définit la méthode abstraite use, qui doit être redéfinie par toutes les classes qui en héritent, afin de permettre des comportements spécifiques pour chaque type de compétence.
+
+
+
+\end{document}
