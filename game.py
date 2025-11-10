@@ -1,61 +1,52 @@
 import pygame
 import random
-from unit import Unit 
-from interface import Grid,Highlight,Pickup
+from unit import Unit
+from interface import Grid, Highlight, Pickup
 from sounds import Sounds
-
-
-# Constants
-GRID_SIZE = 21
-CELL_SIZE = 43
-SCREEN_WIDTH, SCREEN_HEIGHT = CELL_SIZE * GRID_SIZE + 300, CELL_SIZE * GRID_SIZE + 100
-FPS = 60
-
-# Load assets
+from constants import *
+from config import TEAM_POSITIONS, RESPAWN_LOCATIONS, MONSTER_BUFF_BONUSES
 
 def load_textures():
     """Load textures for different terrain and overlays."""
     return {
-        #grid 
-        "grass": pygame.image.load("assets/grass_new.png"),
-        "water": pygame.image.load("assets/water.jpg"),
-        "rock": pygame.image.load("assets/new_rock.png"),
-        #overlays
-        "bush": pygame.image.load("assets/bush.png"),
-        "barrier": pygame.image.load("assets/inhibetor.png"),
+        "grass": pygame.image.load(Assets.GRASS),
+        "water": pygame.image.load(Assets.WATER),
+        "rock": pygame.image.load(Assets.ROCK),
+        "bush": pygame.image.load(Assets.BUSH),
+        "barrier": pygame.image.load(Assets.BARRIER),
     }
 
 def load_unit_images():
+    """Load unit image paths."""
     return {
-        "ashe": "assets/ashe.png",
-        "garen": "assets/garen.png",
-        "darius": "assets/darius.png",
-        "soraka": "assets/soraka.png",
-        "rengar": "assets/rengar.png",
-        "bluebuff": "assets/BlueBuff.png",
-        "redbuff": "assets/Redbuff.png",
-        "bigbuff": "assets/BigBuff.png",
-        "baseblue": "assets/Nexus_Blue.png",
-        "basered": "assets/Nexus_Red.png"
+        "ashe": Assets.ASHE,
+        "garen": Assets.GAREN,
+        "darius": Assets.DARIUS,
+        "soraka": Assets.SORAKA,
+        "rengar": Assets.RENGAR,
+        "bluebuff": Assets.BLUE_BUFF,
+        "redbuff": Assets.RED_BUFF,
+        "bigbuff": Assets.BIG_BUFF,
+        "baseblue": Assets.NEXUS_BLUE,
+        "basered": Assets.NEXUS_RED
     }
 
 def load_indicators():
+    """Load indicator images."""
     return {
-        "indicator": pygame.image.load("assets/indicator.png"),
-        "indicator1": pygame.image.load("assets/indicator1.jpg"),
-        "redsquare": pygame.image.load("assets/redsquare.png"),
+        "indicator": pygame.image.load(Assets.INDICATOR),
+        "indicator1": pygame.image.load(Assets.INDICATOR1),
+        "redsquare": pygame.image.load(Assets.RED_SQUARE),
     }
 
 def load_pickups():
-    """Load the different potion types"""
-    return{
-        #pick ups
-        "red_potion": pygame.image.load("assets/red_potion.png"),
-        "blue_potion": pygame.image.load("assets/blue_potion.png"),
-        "green_potion": pygame.image.load("assets/green_potion.png"),
-        "golden_potion": pygame.image.load("assets/golden_potion.png"),
-        "black_potion": pygame.image.load("assets/black_potion.png"),
-
+    """Load the different potion types."""
+    return {
+        "red_potion": pygame.image.load(Assets.RED_POTION),
+        "blue_potion": pygame.image.load(Assets.BLUE_POTION),
+        "green_potion": pygame.image.load(Assets.GREEN_POTION),
+        "golden_potion": pygame.image.load(Assets.GOLDEN_POTION),
+        "black_potion": pygame.image.load(Assets.BLACK_POTION),
     }
 
 
@@ -84,19 +75,19 @@ class Game:
         self.event_log = [] # Initialize event log
 
 
-        
-        #initilizing main menu
-        self.font_title = pygame.font.Font("assets/League.otf", 65)
-        self.font_small = pygame.font.Font("assets/RussoOne.ttf", 36)
-        self.menu_image = pygame.image.load("assets/main_screen.jpg")  # Load main menu background
-        self.background_image = pygame.image.load("assets/lol_background.jpg")  # Load main menu background
-        self.champ_select_image = pygame.image.load("assets/champ_select.jpg")  # Load champion selection background
-        self.game_over_image = pygame.image.load("assets/game_over_image.jpg")  # Load champion selection background
 
-        #intializing key menu
-        self.red_key_img = pygame.image.load("assets/red_key.png")
-        self.blue_key_img = pygame.image.load("assets/blue_key.png")
-        self.font = pygame.font.Font(None, 24)  # Use a small font size for clarity
+        # Initialize main menu
+        self.font_title = pygame.font.Font(Assets.FONT_TITLE, 65)
+        self.font_small = pygame.font.Font(Assets.FONT_RUSSO, 36)
+        self.menu_image = pygame.image.load(Assets.MAIN_SCREEN)
+        self.background_image = pygame.image.load(Assets.LOL_BACKGROUND)
+        self.champ_select_image = pygame.image.load(Assets.CHAMP_SELECT)
+        self.game_over_image = pygame.image.load(Assets.GAME_OVER)
+
+        # Initialize key menu
+        self.red_key_img = pygame.image.load(Assets.RED_KEY)
+        self.blue_key_img = pygame.image.load(Assets.BLUE_KEY)
+        self.font = pygame.font.Font(None, 24)
         
         
         self.key_last_state = {} # prevent repeated actions
@@ -122,18 +113,17 @@ class Game:
             self.screen.blit(pygame.transform.scale(self.background_image, (SCREEN_WIDTH, SCREEN_HEIGHT)), rect)
 
             # Render game title
-            title_text = self.font_title.render("League on Budget", True, (200, 156, 56))
-            title_rect = title_text.get_rect(center=(SCREEN_WIDTH // 2  , SCREEN_HEIGHT // 4  ))
-            title_text1 = self.font_title.render("League on Budget", True, (0,0,0))
-            title_rect1 = title_text1.get_rect(center=(SCREEN_WIDTH // 2 +2, SCREEN_HEIGHT // 4+ 2))
+            title_text = self.font_title.render("League on Budget", True, Colors.GOLD)
+            title_rect = title_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 4))
+            title_text1 = self.font_title.render("League on Budget", True, Colors.BLACK)
+            title_rect1 = title_text1.get_rect(center=(SCREEN_WIDTH // 2 + 2, SCREEN_HEIGHT // 4 + 2))
 
             self.screen.blit(title_text1, title_rect1)
             self.screen.blit(title_text, title_rect)
-            
-            
+
             # Render instructions
-            start_text = self.font_small.render("Press ENTER to Play", True, (200, 200, 200))
-            quit_text = self.font_small.render("Press ESC to Quit", True, (200, 200, 200))
+            start_text = self.font_small.render("Press ENTER to Play", True, Colors.LIGHT_GRAY)
+            quit_text = self.font_small.render("Press ESC to Quit", True, Colors.LIGHT_GRAY)
 
             start_rect = start_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
             quit_rect = quit_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 50))
@@ -175,8 +165,8 @@ class Game:
         # Track selected units and predefined positions
         blue_team = []
         red_team = []
-        blue_positions = [(3, 15), (4, 16)]
-        red_positions = [(15, 2), (17, 4)]
+        blue_positions = TEAM_POSITIONS["blue"]
+        red_positions = TEAM_POSITIONS["red"]
         current_team = "blue"  # Start with Blue's turn
         selected_units = []
         selected_unit_info = None  # Track which unit's details are displayed
@@ -189,9 +179,9 @@ class Game:
             y_offset = SCREEN_HEIGHT // 3
             for i, unit in enumerate(available_units):
                 color = (
-                    (10, 10, 200) if unit in selected_units and unit.color == "blue" else
-                    (200, 10, 10) if unit in selected_units and unit.color == "red" else
-                    (255, 255, 255)
+                    Colors.BLUE_TEXT if unit in selected_units and unit.color == "blue" else
+                    Colors.RED_TEXT if unit in selected_units and unit.color == "red" else
+                    Colors.WHITE
                 )
 
                 unit_text = small_font.render(f"{i + 1}: {unit.name}", True, color)
@@ -207,33 +197,33 @@ class Game:
                 ]
                 y_offset = SCREEN_HEIGHT // 3
                 for line in attributes_text:
-                    attr_text = small_font.render(line, True, (255, 255, 255))
+                    attr_text = small_font.render(line, True, Colors.WHITE)
                     self.screen.blit(attr_text, (SCREEN_WIDTH // 2 + 200, y_offset))
                     y_offset += 40
-                     # Show the selected champion's image larger
+                # Show the selected champion's image larger
                 selected_image = pygame.transform.scale(selected_unit_info.image, (150, 150))
-                self.screen.blit(selected_image, (SCREEN_WIDTH - 420, y_offset+30))
+                self.screen.blit(selected_image, (SCREEN_WIDTH - 420, y_offset + 30))
 
             # Render team rosters
-            blue_text = font.render("Blue Team", True, (0, 0, 255))
-            red_text = font.render("Red Team", True, (255, 0, 0))
+            blue_text = font.render("Blue Team", True, Colors.BLUE)
+            red_text = font.render("Red Team", True, Colors.RED)
             self.screen.blit(blue_text, (50, 50))
             self.screen.blit(red_text, (SCREEN_WIDTH-400, 50))
 
             y_offset_blue = 200
             for unit in blue_team:
-                unit_text = small_font.render(unit.name, True, (0, 0, 255))
+                unit_text = small_font.render(unit.name, True, Colors.BLUE)
                 self.screen.blit(unit_text, (100, y_offset_blue))
                 selected_image = pygame.transform.scale(unit.image, (50, 50))
-                self.screen.blit(selected_image, (250, y_offset_blue-10))
+                self.screen.blit(selected_image, (250, y_offset_blue - 10))
                 y_offset_blue += 60
 
             y_offset_red = 200
             for unit in red_team:
-                unit_text = small_font.render(unit.name, True, (255, 0, 0))
-                self.screen.blit(unit_text, (SCREEN_WIDTH-400+50, y_offset_red))
+                unit_text = small_font.render(unit.name, True, Colors.RED)
+                self.screen.blit(unit_text, (SCREEN_WIDTH - 400 + 50, y_offset_red))
                 selected_image = pygame.transform.scale(unit.image, (50, 50))
-                self.screen.blit(selected_image, (SCREEN_WIDTH-200, y_offset_red-10))
+                self.screen.blit(selected_image, (SCREEN_WIDTH - 200, y_offset_red - 10))
                 y_offset_red += 60
 
             pygame.display.flip()
@@ -249,8 +239,8 @@ class Game:
                         if 0 <= index < len(available_units):
                             selected_unit_info = available_units[index]  # Show attributes for this unit
                     elif event.key == pygame.K_RETURN and selected_unit_info:
-                        self.sound.play("selection") 
-                        self.sound.set_volume("selection", 0.5)
+                        self.sound.play("selection")
+                        self.sound.set_volume("selection", Volume.SELECTION)
                         if selected_unit_info not in selected_units:
                             # Assign the current team and position to the selected unit
                             if current_team == "blue":
@@ -272,20 +262,20 @@ class Game:
                             selected_units.append(selected_unit_info)
                             selected_unit_info = None
                             # End selection if both teams have 2 units each
-                            if len(blue_team) == 2 and len(red_team) == 2 :
+                            if len(blue_team) == 2 and len(red_team) == 2:
                                 for i in range(3, 0, -1):  # Countdown from 3 to 1
                                     rect = pygame.Rect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT)
                                     self.screen.blit(pygame.transform.scale(self.background_image, (SCREEN_WIDTH, SCREEN_HEIGHT)), rect)
-                                    countdown_text = small_font.render(f"Starting in {i}...", True, (55, 255, 55))
+                                    countdown_text = small_font.render(f"Starting in {i}...", True, Colors.GREEN)
                                     countdown_rect = countdown_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
                                     self.screen.blit(countdown_text, countdown_rect)
                                     pygame.display.flip()
-                                    pygame.time.delay(1000)  # Delay for 1 second
-                                    # Play game music
-                                for volume in reversed([x / 100 for x in range(1, 101)]):  # De 1.0 à 0.01
-                                    self.sound.set_volume("game_music", volume)  
-                                    pygame.time.delay(10) 
-                                self.sound.set_volume("game_music", 0.03)  
+                                    pygame.time.delay(Gameplay.COUNTDOWN_DELAY_MS)
+                                # Fade out menu music
+                                for volume in reversed([x / 100 for x in range(1, 101)]):
+                                    self.sound.set_volume("game_music", volume)
+                                    pygame.time.delay(Volume.FADE_DELAY_MS)
+                                self.sound.set_volume("game_music", Volume.MUSIC_DEFAULT)
                                 self.sound.sounds["game_music"].play(loops=-1)
                                 menu_running = False
 
@@ -302,8 +292,34 @@ class Game:
     def log_event(self, message):
         """Add an event to the event log."""
         self.event_log.append(message)
-        if len(self.event_log) > 10:  # Limit the log to the last 10 events
+        if len(self.event_log) > UI.EVENT_LOG_MAX_EVENTS:
             self.event_log.pop(0)
+
+    def handle_monster_defeat(self, target, killer):
+        """Handle buff acquisition and key transfer when a monster is defeated."""
+        if target is None or target.alive or target.unit_type != "monster":
+            return
+
+        # Apply team buff
+        for unit in self.units:
+            if unit.color == killer.color:
+                if target.name == "BigBuff":
+                    unit.max_health = int(unit.max_health * MONSTER_BUFF_BONUSES["BigBuff"]["max_health_multiplier"])
+                    unit.damage = int(unit.damage * MONSTER_BUFF_BONUSES["BigBuff"]["damage_multiplier"])
+                else:
+                    unit.max_health = int(unit.max_health * MONSTER_BUFF_BONUSES["other"]["max_health_multiplier"])
+                    unit.damage = int(unit.damage * MONSTER_BUFF_BONUSES["other"]["damage_multiplier"])
+
+        # Show buff animation
+        if target.red_keys == 1:
+            Highlight.show_buff_animation(self, self.screen, target.image, "You won a red key + buff")
+        elif target.blue_keys == 1:
+            Highlight.show_buff_animation(self, self.screen, target.image, "You won a blue key + buff")
+        else:
+            Highlight.show_buff_animation(self, self.screen, target.image, "You got the Buff")
+
+        # Transfer keys
+        self.manage_keys(dead_player=target, killer=killer)
 
 
 
@@ -311,17 +327,17 @@ class Game:
     def draw_info_panel(self):
         """Draw the information panel with word wrapping for long text."""
         panel_x = CELL_SIZE * GRID_SIZE
-        panel_width = 300  # Width of the info panel
+        panel_width = UI.INFO_PANEL_WIDTH
         panel_height = SCREEN_HEIGHT
-        padding = 10  # Padding inside the panel
+        padding = UI.INFO_PANEL_PADDING
 
         # Draw panel background
-        pygame.draw.rect(self.screen, (30, 30, 30), (panel_x, 0, panel_width, panel_height))
+        pygame.draw.rect(self.screen, Colors.DARK_GRAY, (panel_x, 0, panel_width, panel_height))
 
         # Render event log with word wrapping
         font = pygame.font.Font(None, 24)
         y_offset = padding
-        line_spacing = 5  # Spacing between lines
+        line_spacing = UI.INFO_PANEL_LINE_SPACING
         max_line_width = panel_width - 2 * padding
 
         for event in reversed(self.event_log):  # Display from newest to oldest
@@ -330,10 +346,10 @@ class Game:
             current_line = ""
             for word in words:
                 test_line = f"{current_line} {word}".strip()
-                text_surface = font.render(test_line, True, (255, 255, 255))
+                text_surface = font.render(test_line, True, Colors.WHITE)
                 if text_surface.get_width() > max_line_width:
                     # Render the current line and move to the next
-                    rendered_surface = font.render(current_line, True, (255, 255, 255))
+                    rendered_surface = font.render(current_line, True, Colors.WHITE)
                     self.screen.blit(rendered_surface, (panel_x + padding, y_offset))
                     y_offset += rendered_surface.get_height() + line_spacing
                     current_line = word
@@ -341,7 +357,7 @@ class Game:
                     current_line = test_line
             # Render the last line of the current event
             if current_line:
-                rendered_surface = font.render(current_line, True, (255, 255, 255))
+                rendered_surface = font.render(current_line, True, Colors.WHITE)
                 self.screen.blit(rendered_surface, (panel_x + padding, y_offset))
                 y_offset += rendered_surface.get_height() + line_spacing
 
@@ -350,18 +366,16 @@ class Game:
                 break
 
 
-#space for the abilities abr
-
     def draw_abilities_bar(self):
         """Draw the abilities bar and HUD for the current unit at the bottom of the screen."""
         # Bar dimensions
-        bar_height = 100
+        bar_height = UI.ABILITIES_BAR_HEIGHT
         bar_y = SCREEN_HEIGHT - bar_height
-        padding = 10  # Padding for internal elements
-        icon_size = 80  # Size for the champion's icon
+        padding = 10
+        icon_size = UI.ABILITIES_ICON_SIZE
 
         # Background panel for the HUD
-        pygame.draw.rect(self.screen, (30, 30, 30), (0, bar_y, SCREEN_WIDTH, bar_height))
+        pygame.draw.rect(self.screen, Colors.DARK_GRAY, (0, bar_y, SCREEN_WIDTH, bar_height))
 
         # Get the current unit
         current_unit = self.units[self.current_unit_index]
@@ -566,7 +580,7 @@ class Game:
 
         # Movement Phase
         if current_unit.state == "move":
-            if current_time - self.last_move_time > 100:  # Delay of 100ms between movements
+            if current_time - self.last_move_time > Gameplay.MOVE_DELAY_MS:
                 if keys[pygame.K_UP]:
                     current_unit.move(0, -1, self.grid)
                     self.last_move_time = current_time
@@ -624,7 +638,7 @@ class Game:
                     
         # Attack Phase
         elif current_unit.state == "attack":
-            if current_time - self.last_move_time > 100:  # Delay of 100ms between movements
+            if current_time - self.last_move_time > Gameplay.MOVE_DELAY_MS:
                 new_target_x, new_target_y = current_unit.target_x, current_unit.target_y
 
                 # Determine current range restriction
@@ -687,29 +701,10 @@ class Game:
                         else:
                             print("No valid target selected.")
 
-                        #manage after using aoe abilitities
+                        # Handle monster defeats for AoE abilities
                         for targets in aoe_targets:
-                            #manage the mssg to show when buff is killed 
-                            if targets !=None and targets.unit_type =="monster" and targets.alive==False :
-                                #if the buff dies the team gets a permanent buff
-                                for unit in self.units:
-                                        if unit.color == current_unit.color:
-                                            if unit.name=="BigBuff":
-                                                unit.max_health = int(unit.max_health * 1.10)
-                                                unit.damage = int(unit.damage * 1.15)
-                                            else :
-                                                unit.max_health = int(unit.max_health * 1.05)
-                                                unit.damage = int(unit.damage * 1.05)
-                                
-                                if targets.red_keys==1:
-                                    Highlight.show_buff_animation(self,self.screen,targets.image,"You won a red key + buff")
-                                elif targets.blue_keys==1:
-                                    Highlight.show_buff_animation(self,self.screen,targets.image,"You won a blue key + buff")
-                                else:
-                                    Highlight.show_buff_animation(self,self.screen,targets.image,"You got the Buff ")
-
-                                # managing the keys
-                            if targets !=None and targets.alive==False:
+                            self.handle_monster_defeat(targets, current_unit)
+                            if targets is not None and not targets.alive:
                                 self.manage_keys(dead_player=targets, killer=current_unit)
 
                     else : #logic when using none aoe abilities
@@ -721,28 +716,9 @@ class Game:
                         
                         else:
                             print("No valid target selected.")
-                        #manage after using none aoe abilities
-                        #manage the mssg to show when buff is killed 
-                        if target !=None and target.unit_type =="monster" and target.alive==False :
-                            #if the buff dies the team gets a permanent buff
-                            for unit in self.units:
-                                if unit.color == current_unit.color:
-                                    if unit.name=="BigBuff":
-                                        unit.max_health = int(unit.max_health * 1.10)
-                                        unit.damage = int(unit.damage * 1.15)
-                                    else :
-                                        unit.max_health = int(unit.max_health * 1.05)
-                                        unit.damage = int(unit.damage * 1.05)
-                            
-                            if target.red_keys==1:
-                                Highlight.show_buff_animation(self,self.screen,target.image,"You won a red key + buff")
-                            elif target.blue_keys==1:
-                                Highlight.show_buff_animation(self,self.screen,target.image,"You won a blue key + buff")
-                            else:
-                                Highlight.show_buff_animation(self,self.screen,target.image,"You got the Buff ")
-
-                            # managing the keys
-                        if target !=None and target.alive==False:
+                        # Handle monster defeat for non-AoE abilities
+                        self.handle_monster_defeat(target, current_unit)
+                        if target is not None and not target.alive:
                             self.manage_keys(dead_player=target, killer=current_unit)
 
 
@@ -756,30 +732,10 @@ class Game:
                 if target is not None and target!=current_unit:
                     if basic_attack_sound in self.sound.sounds:
                         self.sound.play(basic_attack_sound)
-            
-                
-                #manage after using basic attack 
-                #manage the mssg to show when buff is killed 
-                if target !=None and target.unit_type =="monster" and target.alive==False :
-                    #if the buff dies the team gets a permanent buff
-                    for unit in self.units:
-                        if unit.color == current_unit.color:
-                            if unit.name=="BigBuff":
-                                unit.max_health = int(unit.max_health * 1.10)
-                                unit.damage = int(unit.damage * 1.15)
-                            else :
-                                unit.max_health = int(unit.max_health * 1.05)
-                                unit.damage = int(unit.damage * 1.05)
-                    
-                    if target.red_keys==1:
-                        Highlight.show_buff_animation(self,self.screen,target.image,"You won a red key + buff")
-                    elif target.blue_keys==1:
-                        Highlight.show_buff_animation(self,self.screen,target.image,"You won a blue key + buff")
-                    else:
-                        Highlight.show_buff_animation(self,self.screen,target.image,"You got the Buff ")
 
-                    # managing the keys
-                if target !=None and target.alive==False:
+                # Handle monster defeat for basic attack
+                self.handle_monster_defeat(target, current_unit)
+                if target is not None and not target.alive:
                     self.manage_keys(dead_player=target, killer=current_unit)
 
             
@@ -805,15 +761,14 @@ class Game:
             self.pickup.update(self.current_turn,self.grid)
             self.manage_keys(current_turn=self.current_turn)
 
-            #health and mana regeneration each turn
+            # Health and mana regeneration each turn
             for unit in self.units:
-                if unit.unit_type=="player":
-                    unit.health+=min(unit.max_health-unit.health,int(0.005*unit.max_health))
-                    unit.mana +=min(unit.max_mana-unit.mana,int(0.01*unit.max_mana))
+                if unit.unit_type == "player":
+                    unit.health += min(unit.max_health - unit.health, int(Gameplay.HEALTH_REGEN_PERCENT * unit.max_health))
+                    unit.mana += min(unit.max_mana - unit.mana, int(Gameplay.MANA_REGEN_PERCENT * unit.max_mana))
 
-            #respawn logic
-            # Calculate respawn cap  
-            respawn = min(self.current_turn // 8, 10)
+            # Respawn logic
+            respawn = min(self.current_turn // Gameplay.RESPAWN_BASE_TURNS, Gameplay.RESPAWN_MAX_CAP)
 
             # Update death timers and respawn dead units
             for unit in self.units:
@@ -834,18 +789,9 @@ class Game:
 
 
     def get_respawn_location(self, unit):
-    # Example: respawn at a fixed position or base location
+        """Get respawn location for a unit based on their index."""
         unit_index = self.units.index(unit)
-        # Determine the respawn location based on the index
-        if unit_index == 0:
-            return (3, 15)  # Respawn point for the first unit
-        elif unit_index == 1:
-            return (4, 16)  # Respawn point for the second unit
-        elif unit_index == 2:
-            return (15, 2)  # Respawn point for the third unit
-        elif unit_index == 3:
-            return (17, 4)
-        # Add more conditions as needed for additional indices
+        return RESPAWN_LOCATIONS.get(unit_index, (0, 0))
 
 
 
@@ -886,20 +832,19 @@ class Game:
 
             
 
-         #checking if the team got 3 keys or not and changing the barrier status
-        if self.units[0].red_keys + self.units[1].red_keys >=3:
+        # Check if the team got enough keys to break barrier
+        if self.units[0].red_keys + self.units[1].red_keys >= Gameplay.KEYS_REQUIRED_TO_BREAK_BARRIER:
             print("blue team broke the red barrier")
-            self.units[-1].barrier_status="Down"
-            self.red_barrier="Down"
-        if self.units[2].blue_keys + self.units[3].blue_keys >=3:
+            self.units[-1].barrier_status = "Down"
+            self.red_barrier = "Down"
+        if self.units[2].blue_keys + self.units[3].blue_keys >= Gameplay.KEYS_REQUIRED_TO_BREAK_BARRIER:
             print("red team broke the blue barrier")
-            self.units[-2].barrier_status="Down"
-            self.blue_barrier="Down"
-
+            self.units[-2].barrier_status = "Down"
+            self.blue_barrier = "Down"
 
         # Spawn additional keys based on turn events
         if current_turn:
-            if current_turn%20 == 0:
+            if current_turn % Gameplay.MONSTER_RESPAWN_TURN_INTERVAL == 0:
                 # Assign keys to a monster
                 for unit in self.units :
                     if unit.unit_type == "monster" :
@@ -917,19 +862,16 @@ class Game:
 
                     
     def draw_key_counts(self):
-        """
-        Draws the number of red and blue keys each player and team has,
-        including the player's image next to their key counts.
-        """
+        """Draw the number of red and blue keys each player has."""
         # Constants for layout
-        key_icon_size = 30  # Slightly increased size of the key images
-        unit_icon_size = int(CELL_SIZE * 3 / 4)  # Increased size of the unit image (3/4 of cell size)
-        x_offset = SCREEN_WIDTH - 250  # Adjusted horizontal margin for larger layout
-        y_offset = SCREEN_HEIGHT / 2  # Vertical margin
-        spacing = 50  # Increased space between rows for larger elements
+        key_icon_size = UI.KEY_ICON_SIZE
+        unit_icon_size = int(CELL_SIZE * UI.UNIT_ICON_SIZE_RATIO)
+        x_offset = SCREEN_WIDTH - 250
+        y_offset = SCREEN_HEIGHT / 2
+        spacing = 50
 
-        # Create a larger font for the key counts
-        larger_font = pygame.font.Font(None, 32)  # Use size 32 for even larger text
+        # Create font for the key counts
+        larger_font = pygame.font.Font(None, 32)
 
         # Draw individual player key counts
         for i, unit in enumerate(self.units):
@@ -953,9 +895,9 @@ class Game:
                     (x_offset + unit_icon_size + 20, player_y)
                 )  # More space between key images
 
-                # Draw key count texts with updated font size and white color
-                red_key_count_text = larger_font.render(str(unit.red_keys), True, (200, 156, 56))
-                blue_key_count_text = larger_font.render(str(unit.blue_keys), True, (200, 156, 56))
+                # Draw key count texts
+                red_key_count_text = larger_font.render(str(unit.red_keys), True, Colors.GOLD)
+                blue_key_count_text = larger_font.render(str(unit.blue_keys), True, Colors.GOLD)
                 self.screen.blit(
                     red_key_count_text,
                     (x_offset + unit_icon_size + 110 + key_icon_size + 10, player_y)
@@ -964,9 +906,9 @@ class Game:
                     blue_key_count_text,
                     (x_offset + unit_icon_size + 20 + key_icon_size + 10, player_y)
                 )
-    # Draw barrier statuses below key counts
-        red_barrier_text = larger_font.render(f"Red Barrier: {self.red_barrier}", True, (200, 156, 56))
-        blue_barrier_text = larger_font.render(f"Blue Barreir: {self.blue_barrier}", True, (200, 156, 56))
+        # Draw barrier statuses below key counts
+        red_barrier_text = larger_font.render(f"Red Barrier: {self.red_barrier}", True, Colors.GOLD)
+        blue_barrier_text = larger_font.render(f"Blue Barrier: {self.blue_barrier}", True, Colors.GOLD)
         self.screen.blit(
             red_barrier_text,
             (x_offset-10 , player_y + key_icon_size + 10)
@@ -999,19 +941,17 @@ class Game:
 
 
     def game_over_screen(self, winner_team):
-        """
-        Displays a 'Game Over' screen indicating which team won.
-        """
+        """Display a 'Game Over' screen indicating which team won."""
         rect = pygame.Rect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT)
         self.screen.blit(pygame.transform.scale(self.game_over_image, (SCREEN_WIDTH, SCREEN_HEIGHT)), rect)
 
         # Set up fonts
-        game_over_font = pygame.font.Font("assets/RussoOne.ttf", 80)  # Large font for "Game Over"
-        winner_font = pygame.font.Font("assets/RussoOne.ttf", 50)     # Smaller font for the winner message
+        game_over_font = pygame.font.Font(Assets.FONT_RUSSO, 80)
+        winner_font = pygame.font.Font(Assets.FONT_RUSSO, 50)
 
         # Render text surfaces
-        game_over_text = game_over_font.render("GAME OVER", True, (255, 255, 255))  # White text
-        winner_text = winner_font.render(f"Team {winner_team.upper()} Won!", True, (255, 155, 56))  #  text for winner
+        game_over_text = game_over_font.render("GAME OVER", True, Colors.WHITE)
+        winner_text = winner_font.render(f"Team {winner_team.upper()} Won!", True, Colors.GOLD)
 
         # Center the texts on the screen
         screen_width, screen_height = self.screen.get_size()
@@ -1025,8 +965,8 @@ class Game:
         # Update the display
         pygame.display.flip()
 
-        # Pause to show the screen for a while (e.g., 5 seconds)
-        pygame.time.delay(6000)  # Delay in milliseconds (5000 ms = 5 seconds)
+        # Pause to show the screen
+        pygame.time.delay(Gameplay.GAME_OVER_DELAY_MS)
 
    
         
@@ -1084,15 +1024,3 @@ class Game:
 
                 pygame.display.flip()
                 self.clock.tick(FPS)
-
-# Run the game
-if __name__ == "__main__":
-    Game().run()
-
-
-
-
-
-#fix the keys vfx ; make the showing of mssgs better
-
-#add the win conditions and make base inhereted class

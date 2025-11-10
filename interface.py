@@ -1,12 +1,8 @@
 import pygame
-import random 
-from sounds import *
-
-# Constants
-GRID_SIZE = 21
-CELL_SIZE = 43
-
-##addign the types of potions 
+import random
+from sounds import Sounds
+from constants import *
+from config import TERRAIN_LAKES, TERRAIN_HILLS, TERRAIN_OVERLAYS, PICKUP_TYPES 
 
 
 # Tile Class
@@ -54,15 +50,7 @@ class Pickup:
             self.textures_file = None
             self.turn_count = 0
             self.allowed_tile_types = ["grass", "water"]
-
-            self.pickup_types = {
-                "red_potion":   {"rarity": 0.8},
-                "blue_potion":  {"rarity": 0.8},
-                "green_potion": {"rarity": 0.3},
-                "golden_potion":{"rarity": 0.2},
-                "black_potion": {"rarity": 0.2},
-            }
-
+            self.pickup_types = PICKUP_TYPES
             self.next_spawn_turns = {}
             self.sound = Sounds() 
         else:
@@ -80,7 +68,10 @@ class Pickup:
         """Initialize the pickup system and set initial next spawn attempts."""
         self.textures_file = textures_file
         for p_type in self.pickup_types:
-            self.next_spawn_turns[p_type] = random.randint(5, 8)
+            self.next_spawn_turns[p_type] = random.randint(
+                Gameplay.PICKUP_SPAWN_INITIAL_MIN,
+                Gameplay.PICKUP_SPAWN_INITIAL_MAX
+            )
 
 
 
@@ -89,15 +80,15 @@ class Pickup:
         """Update all pickups and attempt spawns each turn (manager only)."""
         self.turn_count = turn_count
 
-        # Remove pickups that have stayed 15 turns without being picked
+        # Remove pickups that have stayed too long without being picked
         for p in self.all_pickups[:]:
-            if not p.picked and (self.turn_count - p.spawn_turn >= 15):
+            if not p.picked and (self.turn_count - p.spawn_turn >= Gameplay.PICKUP_DESPAWN_TURNS):
                 self.remove_pickup(p)
 
         # Attempt to spawn each pickup type if it's time
         for p_type, config in self.pickup_types.items():
             if self.turn_count >= self.next_spawn_turns[p_type]:
-                if len(self.all_pickups) < 10:
+                if len(self.all_pickups) < Gameplay.MAX_PICKUPS:
                     # Check rarity
                     if random.random() < config["rarity"]:
                         x, y = self.get_random_spawn_location(grid)
@@ -164,7 +155,7 @@ class Pickup:
         """Remove a pickup and schedule next spawn attempt (manager only)."""
         if pickup in self.all_pickups:
             self.all_pickups.remove(pickup)
-        delay = random.randint(15, 20)
+        delay = random.randint(Gameplay.PICKUP_SPAWN_MIN_DELAY, Gameplay.PICKUP_SPAWN_MAX_DELAY)
         self.next_spawn_turns[pickup.overlay] = self.turn_count + delay
 
 
@@ -202,41 +193,17 @@ class Grid:
         grid = [[Tile(x, y, "grass", self.textures_file) for y in range(self.size)] for x in range(self.size)]
 
         # Add water (lakes)
-        lakes = [
-            [(5, 5), (5, 6), (6, 5), (6, 6), (7, 6)],  
-            [(10, 7), (11, 6), (11, 7), (12, 6),(12,7)],  
-            [(8, 13),(9, 13), (8, 14), (9, 14), (10, 13)], 
-            [(13, 14), (14, 14), (14, 15), (15, 14), (15, 15)],  
-        ]
-        for lake in lakes:
+        for lake in TERRAIN_LAKES:
             for x, y in lake:
                 grid[x][y] = Tile(x, y, "water", self.textures_file)
 
         # Add rocks (hills)
-        hills = [
-    
-            [(2, 4), (2, 5), (2, 6),(2,12), (3, 3),(3, 4), (3, 5),(3,6),(3,10),(3,11),(3,12),
-            (3,13),(3,14),(4, 3), (5, 3),(5,8),(5,10),(5,12),(6,3),(6, 8), (6, 9),
-            (6,10),(6,12),(6,13),(6,17),(7,8),(7,12),(7,16),(7,17),(8,11),(8,15),(8,16),(8,17),
-            (9, 3), (9, 8), (9, 12), (9, 16), (9, 17),(10,2),(10,3),(10,8),(10,12),(10,17),(10,18),
-            (11,3),(11,4),(11,8),(11,12),(11,17),(12,3),(12,4),(12,5),(12,9),(13,3),(13,4),(13,8),(13,12),
-            (14,3),(14,7),(14,8),(14,10),(14,11),(14,12),(14,17),(15,8),(15,10),(15,12),(15,17),(16,17),
-            (17,6),(17,7),(17,8),(17,9),(17,10),(17,14),(17,15),(17,16),(17,17),
-            (18,8),(18,14),(18,15),(18,16),
-            ]
-            ]
-        for hill in hills:
+        for hill in TERRAIN_HILLS:
             for x, y in hill:
                 grid[x][y] = Tile(x, y, "rock", self.textures_file)
 
         # Add overlays (bushes, barriers)
-        overlays = {
-            "bush": [(0, 0), (1, 0), (0, 1), (20, 20), (19, 20), (20, 19), (3, 7), (3, 8), (8, 3), (17, 12), (17, 13), (12, 17)],
-            "barrier": [(0, 17), (1, 17), (2, 17), (3, 17), (3, 18), (3, 19), (3, 20), (17, 0), (17, 1), (17, 2), (17, 3), (18, 3), (19, 3), (20, 3)],
-
-            
-        }
-        for overlay_type, positions in overlays.items():
+        for overlay_type, positions in TERRAIN_OVERLAYS.items():
             for x, y in positions:
                 grid[x][y].overlay = overlay_type
 
@@ -286,7 +253,7 @@ class Highlight:
 
                 if self.grid.tiles[x][y].traversable:
                     self.grid.tiles[x][y].highlighted = True
-                    overlay.fill((50, 150, 255, 100))  # Blue with transparency
+                    overlay.fill(Colors.MOVE_HIGHLIGHT)
                     rect = pygame.Rect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE)
                     self.screen.blit(overlay, rect)  # Highlight this tile
 
@@ -314,8 +281,7 @@ class Highlight:
                     x, y = unit.x + dx, unit.y + dy
                     if (0 <= x < GRID_SIZE and 0 <= y < GRID_SIZE and
                             abs(dx) + abs(dy) <= attack_range):  # Manhattan distance restriction
-                        overlay.fill((250, 0, 250, 50) if unit.selected_ability else (250, 0, 0, 50))  
-                        # Green for ability, red for normal attack
+                        overlay.fill(Colors.ABILITY_HIGHLIGHT if unit.selected_ability else Colors.ATTACK_HIGHLIGHT)
                         rect = pygame.Rect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE)
                         self.screen.blit(overlay, rect)
 
@@ -394,15 +360,13 @@ class Highlight:
                 
 
         # Final combined visible tiles
-    def draw_fog(self,screen):
- 
+    def draw_fog(self, screen):
         """Draw the fog of war and dim lighting based on the visible tiles."""
-        
         fog_overlay = pygame.Surface((CELL_SIZE, CELL_SIZE), pygame.SRCALPHA)
-        fog_overlay.fill((0, 0, 0, 170))  # Dark fog (alpha = 200)
+        fog_overlay.fill(Colors.FOG_OVERLAY)
 
         dim_overlay = pygame.Surface((CELL_SIZE, CELL_SIZE), pygame.SRCALPHA)
-        dim_overlay.fill((50, 50, 50, 85))  # Dim lighting (alpha = 100)
+        dim_overlay.fill(Colors.DIM_OVERLAY)
 
         directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]  # Light propagation directions
 
@@ -422,17 +386,17 @@ class Highlight:
                     
 
     def show_buff_animation(self, screen, buff_image, key_message="You won a key"):
-        """Displays a buff animation after a monster is defeated."""
+        """Display a buff animation after a monster is defeated."""
         clock = pygame.time.Clock()
-        duration = 2500  # Total animation duration in ms
+        duration = Gameplay.BUFF_ANIMATION_DURATION_MS
         start_time = pygame.time.get_ticks()
 
         # Capture and blur the background
-        background = pygame.Surface((CELL_SIZE*GRID_SIZE, CELL_SIZE*GRID_SIZE))
-        background.blit( self.screen, (0, 0))  # Copy the current screen into the background surface
+        background = pygame.Surface((CELL_SIZE * GRID_SIZE, CELL_SIZE * GRID_SIZE))
+        background.blit(self.screen, (0, 0))
 
         blur_surface = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
-        blur_surface.fill((0, 0, 0, 150))  # Semi-transparent black for the blur effect
+        blur_surface.fill((0, 0, 0, 150))
 
         # Initial PNG size and position
         original_width, original_height = buff_image.get_width(), buff_image.get_height()
@@ -461,13 +425,13 @@ class Highlight:
             scaled_image = pygame.transform.scale(buff_image, (scaled_width, scaled_height))
             screen.blit(scaled_image, (offset_x, offset_y))
 
-            
+
             if time_elapsed > duration - 1500:
-                font = pygame.font.Font("assets/RussoOne.ttf", 50)
-                text_surface = font.render(key_message, True, (0,0,0))
+                font = pygame.font.Font(Assets.FONT_RUSSO, 50)
+                text_surface = font.render(key_message, True, Colors.BLACK)
                 text_rect = text_surface.get_rect(center=(center_x, center_y + 100))
                 screen.blit(text_surface, text_rect)
-                text_surface1 = font.render(key_message, True, (0, 255,0))
+                text_surface1 = font.render(key_message, True, Colors.GREEN)
                 text_rect1 = text_surface1.get_rect(center=(center_x + 2, center_y + 102))
                 screen.blit(text_surface1, text_rect1)
 
