@@ -93,6 +93,15 @@ class Game:
         self.key_last_state = {} # prevent repeated actions
         self.current_turn=1
 
+        # Screen effects
+        self.screen_shake_start = 0
+        self.screen_shake_active = False
+        self.screen_flash_start = 0
+        self.screen_flash_color = None
+
+        # Particle system
+        self.particles = []
+
         #barrier status
         self.blue_barrier="Up"
         self.red_barrier="Up"
@@ -104,6 +113,7 @@ class Game:
     def main_menu(self):
         """Display the main menu with options to start or quit."""
         menu_running = True
+        start_time = pygame.time.get_ticks()
 
         # Start menu sound
         self.sound.play("game_music")
@@ -112,8 +122,14 @@ class Game:
             rect = pygame.Rect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT)
             self.screen.blit(pygame.transform.scale(self.background_image, (SCREEN_WIDTH, SCREEN_HEIGHT)), rect)
 
-            # Render game title
-            title_text = self.font_title.render("League on Budget", True, Colors.GOLD)
+            # Pulsing glow effect for title
+            elapsed = pygame.time.get_ticks() - start_time
+            pulse = (pygame.math.Vector2(1, 0).rotate(elapsed * 0.1).x + 1) / 2  # 0-1 oscillation
+            glow_intensity = int(100 + pulse * 155)  # 100-255
+            glow_color = (glow_intensity, int(glow_intensity * 0.78), int(glow_intensity * 0.28))
+
+            # Render game title with glow
+            title_text = self.font_title.render("League on Budget", True, glow_color)
             title_rect = title_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 4))
             title_text1 = self.font_title.render("League on Budget", True, Colors.BLACK)
             title_rect1 = title_text1.get_rect(center=(SCREEN_WIDTH // 2 + 2, SCREEN_HEIGHT // 4 + 2))
@@ -121,11 +137,19 @@ class Game:
             self.screen.blit(title_text1, title_rect1)
             self.screen.blit(title_text, title_rect)
 
-            # Render instructions
-            start_text = self.font_small.render("Press ENTER to Play", True, Colors.LIGHT_GRAY)
-            quit_text = self.font_small.render("Press ESC to Quit", True, Colors.LIGHT_GRAY)
+            # Render instructions with hover effect
+            mouse_pos = pygame.mouse.get_pos()
 
+            # Check if hovering over Start button
+            start_rect_area = pygame.Rect(SCREEN_WIDTH // 2 - 150, SCREEN_HEIGHT // 2 - 20, 300, 40)
+            start_color = Colors.GOLD if start_rect_area.collidepoint(mouse_pos) else Colors.LIGHT_GRAY
+            start_text = self.font_small.render("Press ENTER to Play", True, start_color)
             start_rect = start_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
+
+            # Check if hovering over Quit button
+            quit_rect_area = pygame.Rect(SCREEN_WIDTH // 2 - 150, SCREEN_HEIGHT // 2 + 30, 300, 40)
+            quit_color = Colors.RED if quit_rect_area.collidepoint(mouse_pos) else Colors.LIGHT_GRAY
+            quit_text = self.font_small.render("Press ESC to Quit", True, quit_color)
             quit_rect = quit_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 50))
 
             self.screen.blit(start_text, start_rect)
@@ -200,9 +224,16 @@ class Game:
                     attr_text = small_font.render(line, True, Colors.WHITE)
                     self.screen.blit(attr_text, (SCREEN_WIDTH // 2 + 200, y_offset))
                     y_offset += 40
-                # Show the selected champion's image larger
+                # Show the selected champion's image larger with glow
                 selected_image = pygame.transform.scale(selected_unit_info.image, (150, 150))
-                self.screen.blit(selected_image, (SCREEN_WIDTH - 420, y_offset + 30))
+                image_x, image_y = SCREEN_WIDTH - 420, y_offset + 30
+
+                # Draw glow effect around selected champion
+                glow_surface = pygame.Surface((160, 160), pygame.SRCALPHA)
+                pygame.draw.rect(glow_surface, (*Colors.GOLD, 100), (0, 0, 160, 160), border_radius=10)
+                self.screen.blit(glow_surface, (image_x - 5, image_y - 5))
+
+                self.screen.blit(selected_image, (image_x, image_y))
 
             # Render team rosters
             blue_text = font.render("Blue Team", True, Colors.BLUE)
@@ -325,44 +356,96 @@ class Game:
 
 
     def draw_info_panel(self):
-        """Draw the information panel with word wrapping for long text."""
+        """Draw the modern information panel with word wrapping for event log."""
         panel_x = CELL_SIZE * GRID_SIZE
         panel_width = UI.INFO_PANEL_WIDTH
         panel_height = SCREEN_HEIGHT
         padding = UI.INFO_PANEL_PADDING
 
-        # Draw panel background
-        pygame.draw.rect(self.screen, Colors.DARK_GRAY, (panel_x, 0, panel_width, panel_height))
+        # Modern gradient background
+        gradient_surface = pygame.Surface((panel_width, panel_height), pygame.SRCALPHA)
+        for i in range(panel_width):
+            alpha = int(220 - (i / panel_width) * 20)
+            pygame.draw.rect(gradient_surface, (20, 25, 35, alpha), (i, 0, 1, panel_height))
+        self.screen.blit(gradient_surface, (panel_x, 0))
 
-        # Render event log with word wrapping
-        font = pygame.font.Font(None, 24)
-        y_offset = padding
-        line_spacing = UI.INFO_PANEL_LINE_SPACING
+        # Left accent line
+        pygame.draw.rect(self.screen, Colors.GOLD, (panel_x, 0, 3, panel_height))
+
+        # Header section
+        header_font = pygame.font.Font(None, 28)
+        header_text = header_font.render("BATTLE LOG", True, Colors.GOLD)
+        header_shadow = header_font.render("BATTLE LOG", True, (0, 0, 0))
+        self.screen.blit(header_shadow, (panel_x + padding + 2, padding + 2))
+        self.screen.blit(header_text, (panel_x + padding, padding))
+
+        # Divider line under header
+        divider_y = padding + header_text.get_height() + 8
+        pygame.draw.line(self.screen, Colors.GOLD, (panel_x + padding, divider_y), (panel_x + panel_width - padding, divider_y), 2)
+
+        # Render event log with modern styling
+        font = pygame.font.Font(None, 22)
+        y_offset = divider_y + 12
+        line_spacing = 8
         max_line_width = panel_width - 2 * padding
 
-        for event in reversed(self.event_log):  # Display from newest to oldest
-            # Split the text into multiple lines if necessary
+        for idx, event in enumerate(reversed(self.event_log)):
+            # Fade older events
+            event_age = idx
+            alpha = max(255 - (event_age * 15), 100)
+
+            # Event background
+            event_start_y = y_offset
             words = event.split(" ")
+            current_line = ""
+            line_count = 0
+
+            # Calculate lines needed
+            temp_y = y_offset
+            for word in words:
+                test_line = f"{current_line} {word}".strip()
+                text_surface = font.render(test_line, True, Colors.WHITE)
+                if text_surface.get_width() > max_line_width:
+                    line_count += 1
+                    temp_y += font.get_height() + 4
+                    current_line = word
+                else:
+                    current_line = test_line
+            if current_line:
+                line_count += 1
+
+            # Draw event background
+            event_bg_height = line_count * (font.get_height() + 4) + 8
+            event_bg = pygame.Surface((panel_width - 2 * padding, event_bg_height), pygame.SRCALPHA)
+            event_bg.fill((40, 45, 55, min(alpha, 150)))
+            self.screen.blit(event_bg, (panel_x + padding, event_start_y - 4))
+
+            # Draw event text with word wrapping
             current_line = ""
             for word in words:
                 test_line = f"{current_line} {word}".strip()
                 text_surface = font.render(test_line, True, Colors.WHITE)
                 if text_surface.get_width() > max_line_width:
-                    # Render the current line and move to the next
-                    rendered_surface = font.render(current_line, True, Colors.WHITE)
-                    self.screen.blit(rendered_surface, (panel_x + padding, y_offset))
-                    y_offset += rendered_surface.get_height() + line_spacing
+                    # Render current line
+                    rendered_surface = font.render(current_line, True, (255, 255, 255))
+                    rendered_surface.set_alpha(alpha)
+                    self.screen.blit(rendered_surface, (panel_x + padding + 5, y_offset))
+                    y_offset += font.get_height() + 4
                     current_line = word
                 else:
                     current_line = test_line
-            # Render the last line of the current event
-            if current_line:
-                rendered_surface = font.render(current_line, True, Colors.WHITE)
-                self.screen.blit(rendered_surface, (panel_x + padding, y_offset))
-                y_offset += rendered_surface.get_height() + line_spacing
 
-            # Stop rendering if we've filled the panel
-            if y_offset > panel_height - padding:
+            # Render last line
+            if current_line:
+                rendered_surface = font.render(current_line, True, (255, 255, 255))
+                rendered_surface.set_alpha(alpha)
+                self.screen.blit(rendered_surface, (panel_x + padding + 5, y_offset))
+                y_offset += font.get_height() + 4
+
+            y_offset += line_spacing
+
+            # Stop if panel is full
+            if y_offset > panel_height - padding - 50:
                 break
 
 
@@ -374,97 +457,192 @@ class Game:
         padding = 10
         icon_size = UI.ABILITIES_ICON_SIZE
 
-        # Background panel for the HUD
-        pygame.draw.rect(self.screen, Colors.DARK_GRAY, (0, bar_y, SCREEN_WIDTH, bar_height))
+        # Modern gradient background for the HUD
+        gradient_surface = pygame.Surface((SCREEN_WIDTH, bar_height), pygame.SRCALPHA)
+        for i in range(bar_height):
+            alpha = int(230 - (i / bar_height) * 30)
+            pygame.draw.rect(gradient_surface, (25, 25, 35, alpha), (0, i, SCREEN_WIDTH, 1))
+        self.screen.blit(gradient_surface, (0, bar_y))
+
+        # Top accent line
+        pygame.draw.rect(self.screen, Colors.GOLD, (0, bar_y, SCREEN_WIDTH, 2))
 
         # Get the current unit
         current_unit = self.units[self.current_unit_index]
 
         # Define fonts
-        font_large = pygame.font.Font(None, 24)
-        font_small = pygame.font.Font(None, 16)
+        font_large = pygame.font.Font(None, 26)
+        font_small = pygame.font.Font(None, 18)
 
-        # Champion icon
+        # Modern champion icon with frame
+        icon_frame_x = padding
+        icon_frame_y = bar_y + (bar_height - icon_size) // 2 - 3
+
         if current_unit.image:
+            # Outer glow
+            glow_size = icon_size + 8
+            glow_surface = pygame.Surface((glow_size, glow_size), pygame.SRCALPHA)
+            team_color = Colors.BLUE_TEAM if current_unit.color == "blue" else Colors.RED_TEAM if current_unit.color == "red" else Colors.PURPLE
+            pygame.draw.rect(glow_surface, (*team_color, 80), (0, 0, glow_size, glow_size), border_radius=8)
+            self.screen.blit(glow_surface, (icon_frame_x - 4, icon_frame_y - 4))
+
+            # Icon background
+            pygame.draw.rect(self.screen, (45, 45, 55), (icon_frame_x, icon_frame_y, icon_size, icon_size), border_radius=5)
+
+            # Champion icon
             icon = pygame.transform.scale(current_unit.image, (icon_size, icon_size))
-            self.screen.blit(
-                icon, (padding, bar_y + (bar_height - icon_size) // 2)
-            )
+            self.screen.blit(icon, (icon_frame_x, icon_frame_y))
+
+            # Icon border
+            pygame.draw.rect(self.screen, team_color, (icon_frame_x, icon_frame_y, icon_size, icon_size), 3, border_radius=5)
 
         # Unit Stats Display (Name, HP, Mana)
         stats_x = padding + icon_size + padding
         stats_y = bar_y + padding
 
-        # Unit name
-        name_surface = font_large.render(current_unit.name, True, (255, 255, 255))
+        # Unit name with shadow
+        name_shadow = font_large.render(current_unit.name, True, (0, 0, 0))
+        name_surface = font_large.render(current_unit.name, True, Colors.GOLD)
+        self.screen.blit(name_shadow, (stats_x + 2, stats_y + 2))
         self.screen.blit(name_surface, (stats_x, stats_y))
 
-        # HP Bar
+        # HP Bar (with smooth animation)
         hp_bar_width = 200
-        hp_bar_height = 15
+        hp_bar_height = 18
         hp_x = stats_x
-        hp_y = stats_y + name_surface.get_height() + padding
-        pygame.draw.rect(
-            self.screen, (255, 0, 0), (hp_x, hp_y, hp_bar_width, hp_bar_height)
-        )
-        hp_fill_width = int(hp_bar_width * (current_unit.health / current_unit.max_health))
-        pygame.draw.rect(
-            self.screen, (0, 255, 0), (hp_x, hp_y, hp_fill_width, hp_bar_height)
-        )
-        hp_text = f"{current_unit.health}/{current_unit.max_health}"
-        hp_text_surface = font_small.render(hp_text, True, (0, 0, 0))
-        self.screen.blit(
-            hp_text_surface,
-            (hp_x + (hp_bar_width - hp_text_surface.get_width()) // 2, hp_y),
-        )
+        hp_y = stats_y + name_surface.get_height() + padding + 2
 
-        # Mana Bar
+        # HP bar background with shadow
+        shadow_offset = 2
+        pygame.draw.rect(self.screen, (0, 0, 0, 100), (hp_x + shadow_offset, hp_y + shadow_offset, hp_bar_width, hp_bar_height), border_radius=4)
+
+        # Background (dark red for missing health)
+        pygame.draw.rect(self.screen, (120, 20, 20), (hp_x, hp_y, hp_bar_width, hp_bar_height), border_radius=4)
+
+        # Animated fill (gradient green for current health)
+        hp_fill_width = int(hp_bar_width * (current_unit.displayed_health / current_unit.max_health))
+        if hp_fill_width > 0:
+            hp_gradient = pygame.Surface((hp_fill_width, hp_bar_height), pygame.SRCALPHA)
+            for i in range(hp_bar_height):
+                color_intensity = int(200 + (i / hp_bar_height) * 55)
+                pygame.draw.rect(hp_gradient, (0, color_intensity, 0, 255), (0, i, hp_fill_width, 1))
+            self.screen.blit(hp_gradient, (hp_x, hp_y))
+
+        # Border with team color
+        border_color = Colors.BLUE_TEAM if current_unit.color == "blue" else Colors.RED_TEAM if current_unit.color == "red" else Colors.PURPLE
+        pygame.draw.rect(self.screen, border_color, (hp_x, hp_y, hp_bar_width, hp_bar_height), 2, border_radius=4)
+
+        # HP text with outline
+        hp_text = f"{int(current_unit.health)}/{current_unit.max_health}"
+        hp_text_outline = font_small.render(hp_text, True, (0, 0, 0))
+        hp_text_surface = font_small.render(hp_text, True, (255, 255, 255))
+        text_x = hp_x + (hp_bar_width - hp_text_surface.get_width()) // 2
+        text_y = hp_y + (hp_bar_height - hp_text_surface.get_height()) // 2
+        for dx, dy in [(-1,-1), (1,-1), (-1,1), (1,1)]:
+            self.screen.blit(hp_text_outline, (text_x + dx, text_y + dy))
+        self.screen.blit(hp_text_surface, (text_x, text_y))
+
+        # Mana Bar (with smooth animation)
         mana_bar_width = 200
-        mana_bar_height = 10
+        mana_bar_height = 12
         mana_x = stats_x
-        mana_y = hp_y + hp_bar_height + padding
-        pygame.draw.rect(
-            self.screen, (0, 0, 255), (mana_x, mana_y, mana_bar_width, mana_bar_height)
-        )
-        mana_fill_width = int(mana_bar_width * (current_unit.mana / current_unit.max_mana))
-        pygame.draw.rect(
-            self.screen, (0, 191, 255), (mana_x, mana_y, mana_fill_width, mana_bar_height)
-        )
+        mana_y = hp_y + hp_bar_height + 4
 
-        # Draw abilities
+        # Mana bar background with shadow
+        pygame.draw.rect(self.screen, (0, 0, 0, 100), (mana_x + shadow_offset, mana_y + shadow_offset, mana_bar_width, mana_bar_height), border_radius=3)
+
+        # Background (dark blue for missing mana)
+        pygame.draw.rect(self.screen, (20, 20, 80), (mana_x, mana_y, mana_bar_width, mana_bar_height), border_radius=3)
+
+        # Animated fill (gradient cyan for current mana)
+        mana_fill_width = int(mana_bar_width * (current_unit.displayed_mana / current_unit.max_mana))
+        if mana_fill_width > 0:
+            mana_gradient = pygame.Surface((mana_fill_width, mana_bar_height), pygame.SRCALPHA)
+            for i in range(mana_bar_height):
+                color_intensity = int(150 + (i / mana_bar_height) * 105)
+                pygame.draw.rect(mana_gradient, (0, color_intensity, 255, 255), (0, i, mana_fill_width, 1))
+            self.screen.blit(mana_gradient, (mana_x, mana_y))
+
+        # Border
+        pygame.draw.rect(self.screen, border_color, (mana_x, mana_y, mana_bar_width, mana_bar_height), 2, border_radius=3)
+
+        # Mana text
+        mana_text = f"{int(current_unit.mana)}/{current_unit.max_mana}"
+        mana_text_outline = font_small.render(mana_text, True, (0, 0, 0))
+        mana_text_surface = font_small.render(mana_text, True, (200, 240, 255))
+        mana_text_x = mana_x + (mana_bar_width - mana_text_surface.get_width()) // 2
+        mana_text_y = mana_y + (mana_bar_height - mana_text_surface.get_height()) // 2
+        for dx, dy in [(-1,-1), (1,-1), (-1,1), (1,1)]:
+            self.screen.blit(mana_text_outline, (mana_text_x + dx, mana_text_y + dy))
+        self.screen.blit(mana_text_surface, (mana_text_x, mana_text_y))
+
+        # Draw abilities with modern card design
         if hasattr(current_unit, "abilities"):
             num_abilities = len(current_unit.abilities)
             if num_abilities > 0:
-                ability_x_start = stats_x + hp_bar_width + 2 * padding
-                ability_width = (SCREEN_WIDTH - ability_x_start - padding) // num_abilities
+                ability_x_start = stats_x + hp_bar_width + 3 * padding
+                ability_width = (SCREEN_WIDTH - ability_x_start - padding - 10) // num_abilities - 5
 
                 for i, ability in enumerate(current_unit.abilities):
-                    # Highlight the selected ability
-                    if current_unit.selected_ability == ability:
-                        ability_bg_color = (0, 128, 255)  # Blue background for selected ability
+                    ability_x = ability_x_start + i * (ability_width + 5)
+                    card_y = bar_y + padding
+                    card_height = bar_height - 2 * padding
+
+                    # Check if ability is ready
+                    is_ready = ability.remaining_cooldown == 0 and current_unit.mana >= ability.mana_cost
+                    is_selected = current_unit.selected_ability == ability
+
+                    # Card shadow
+                    pygame.draw.rect(self.screen, (0, 0, 0, 120), (ability_x + 3, card_y + 3, ability_width, card_height), border_radius=8)
+
+                    # Card background
+                    if is_selected:
+                        card_color = (40, 100, 180)
+                    elif is_ready:
+                        card_color = (50, 60, 70)
                     else:
-                        ability_bg_color = (50, 50, 50)  # Default gray background
+                        card_color = (35, 35, 45)
 
-                    ability_x = ability_x_start + i * ability_width
-                    ability_rect = pygame.Rect(
-                        ability_x, bar_y + padding, ability_width - padding, bar_height - 2 * padding
-                    )
-                    pygame.draw.rect(self.screen, ability_bg_color, ability_rect)
-                    pygame.draw.rect(self.screen, (255, 255, 255), ability_rect, 2)
+                    pygame.draw.rect(self.screen, card_color, (ability_x, card_y, ability_width, card_height), border_radius=8)
 
-                    # Ability name and mana cost
-                    ability_text = f"{i + 1}: {ability.name} (Mana: {ability.mana_cost})"
-                    text_surface = font_small.render(ability_text, True, (255, 255, 255))
-                    text_x = ability_x + (ability_width - text_surface.get_width()) // 2
-                    self.screen.blit(text_surface, (text_x, bar_y + padding + 10))
+                    # Glow effect for selected ability
+                    if is_selected:
+                        glow_rect = pygame.Rect(ability_x - 2, card_y - 2, ability_width + 4, card_height + 4)
+                        pygame.draw.rect(self.screen, (100, 150, 255), glow_rect, 3, border_radius=10)
 
-                    # Cooldown display
-                    cooldown_text = f"CD: {ability.remaining_cooldown}s"
-                    cooldown_surface = font_small.render(cooldown_text, True, (255, 0, 0))
-                    cooldown_x = ability_x + (ability_width - cooldown_surface.get_width()) // 2
-                    self.screen.blit(
-                        cooldown_surface, (cooldown_x, bar_y + padding + 30)
-                    )
+                    # Key number indicator
+                    key_size = 18
+                    key_bg = pygame.Rect(ability_x + 5, card_y + 5, key_size, key_size)
+                    pygame.draw.rect(self.screen, (0, 0, 0, 180), key_bg, border_radius=3)
+                    key_text = font_small.render(str(i + 1), True, Colors.GOLD)
+                    self.screen.blit(key_text, (ability_x + 5 + (key_size - key_text.get_width()) // 2, card_y + 5))
+
+                    # Ability name
+                    name_y = card_y + 8
+                    ability_name = ability.name
+                    if len(ability_name) > 12:
+                        ability_name = ability_name[:10] + ".."
+                    name_shadow = font_small.render(ability_name, True, (0, 0, 0))
+                    name_surface = font_small.render(ability_name, True, (255, 255, 255) if is_ready else (150, 150, 150))
+                    self.screen.blit(name_shadow, (ability_x + 26, name_y + 1))
+                    self.screen.blit(name_surface, (ability_x + 25, name_y))
+
+                    # Mana cost
+                    mana_y = name_y + 18
+                    mana_icon_color = Colors.CYAN if is_ready else (80, 100, 120)
+                    pygame.draw.circle(self.screen, mana_icon_color, (ability_x + 10, mana_y + 7), 6)
+                    mana_text = font_small.render(str(ability.mana_cost), True, (255, 255, 255) if is_ready else (120, 120, 120))
+                    self.screen.blit(mana_text, (ability_x + 20, mana_y + 2))
+
+                    # Cooldown indicator
+                    if ability.remaining_cooldown > 0:
+                        cd_y = mana_y + 18
+                        cd_surface = font_small.render(f"{ability.remaining_cooldown}s", True, Colors.RED)
+                        self.screen.blit(cd_surface, (ability_x + 10, cd_y))
+
+                    # Border
+                    border_color = (100, 150, 255) if is_selected else (255, 215, 0) if is_ready else (60, 60, 70)
+                    pygame.draw.rect(self.screen, border_color, (ability_x, card_y, ability_width, card_height), 2, border_radius=8)
 
                     # Cooldown bar
                     cooldown_bar_width = ability_width - 2 * padding
@@ -525,6 +703,10 @@ class Game:
                 damage=unit.attack(other_unit,unit.damage)  # Use the Unit's attack method
                 if damage > 0:
                     self.log_event(f"{unit.name} attacked {other_unit.name} for {damage} damage!")
+                    # Trigger screen shake, flash, and particles on damage
+                    self.trigger_screen_shake()
+                    self.trigger_screen_flash(Colors.RED)
+                    self.spawn_particles(other_unit.x, other_unit.y, Colors.RED, count=15)
                     # Vérifier si l'unité est morte
                     if not other_unit.alive:
                         self.log_event(f"{other_unit.name} has been defeated!")
@@ -796,6 +978,23 @@ class Game:
 
 
     
+    def remove_barrier_from_grid(self, team):
+        """Remove barrier overlay from grid tiles when barrier falls."""
+        from config import TERRAIN_OVERLAYS
+
+        barrier_positions = TERRAIN_OVERLAYS.get("barrier", [])
+
+        for x, y in barrier_positions:
+            if 0 <= x < len(self.grid.tiles) and 0 <= y < len(self.grid.tiles[0]):
+                tile = self.grid.tiles[x][y]
+                # Determine which barrier this is based on position
+                # Red barriers are on the upper right (around x=17-20, y=0-3)
+                # Blue barriers are on the lower left (around x=0-3, y=17-20)
+                if team == "red" and x >= 17:  # Red barrier
+                    tile.overlay = None
+                elif team == "blue" and y >= 17:  # Blue barrier
+                    tile.overlay = None
+
     def manage_keys(self, dead_player=None, killer=None, current_turn=None):
         """
         Handles all key-related logic:
@@ -821,9 +1020,14 @@ class Game:
         if dead_player and killer:
             if killer.unit_type == "player":
                 # Transfer keys to the killer
+                keys_collected = dead_player.red_keys + dead_player.blue_keys
                 killer.red_keys += dead_player.red_keys
                 killer.blue_keys += dead_player.blue_keys
                 print(f"{killer.name} collected {dead_player.red_keys} Red key(s) and {dead_player.blue_keys} Blue key(s) from {dead_player.name}.")
+                # Flash gold and spawn particles on key collection
+                if keys_collected > 0:
+                    self.trigger_screen_flash(Colors.GOLD)
+                    self.spawn_particles(dead_player.x, dead_player.y, Colors.GOLD, count=20)
                 dead_player.red_keys = 0
                 dead_player.blue_keys = 0
             else:
@@ -834,13 +1038,24 @@ class Game:
 
         # Check if the team got enough keys to break barrier
         if self.units[0].red_keys + self.units[1].red_keys >= Gameplay.KEYS_REQUIRED_TO_BREAK_BARRIER:
-            print("blue team broke the red barrier")
-            self.units[-1].barrier_status = "Down"
-            self.red_barrier = "Down"
+            if self.red_barrier != "Down":
+                print("blue team broke the red barrier")
+                self.units[-1].barrier_status = "Down"
+                self.red_barrier = "Down"
+                # Remove red barrier tiles from grid
+                self.remove_barrier_from_grid("red")
+                # Flash effect
+                self.trigger_screen_flash((255, 100, 100))
+
         if self.units[2].blue_keys + self.units[3].blue_keys >= Gameplay.KEYS_REQUIRED_TO_BREAK_BARRIER:
-            print("red team broke the blue barrier")
-            self.units[-2].barrier_status = "Down"
-            self.blue_barrier = "Down"
+            if self.blue_barrier != "Down":
+                print("red team broke the blue barrier")
+                self.units[-2].barrier_status = "Down"
+                self.blue_barrier = "Down"
+                # Remove blue barrier tiles from grid
+                self.remove_barrier_from_grid("blue")
+                # Flash effect
+                self.trigger_screen_flash((100, 100, 255))
 
         # Spawn additional keys based on turn events
         if current_turn:
@@ -971,6 +1186,108 @@ class Game:
    
         
 
+    def spawn_particles(self, x, y, color, count=10):
+        """Spawn particles at the given position."""
+        import random
+        for _ in range(count):
+            particle = {
+                'x': x * CELL_SIZE + CELL_SIZE // 2,
+                'y': y * CELL_SIZE + CELL_SIZE // 2,
+                'vx': random.uniform(-2, 2),
+                'vy': random.uniform(-3, -1),
+                'life': random.randint(20, 40),
+                'color': color,
+                'size': random.randint(2, 5)
+            }
+            self.particles.append(particle)
+
+    def update_particles(self):
+        """Update and remove dead particles."""
+        for particle in self.particles[:]:
+            particle['x'] += particle['vx']
+            particle['y'] += particle['vy']
+            particle['vy'] += 0.2  # Gravity
+            particle['life'] -= 1
+            if particle['life'] <= 0:
+                self.particles.remove(particle)
+
+    def draw_particles(self):
+        """Draw all active particles."""
+        for particle in self.particles:
+            alpha = int(255 * (particle['life'] / 40))
+            color_with_alpha = (*particle['color'][:3], alpha)
+            particle_surface = pygame.Surface((particle['size'], particle['size']), pygame.SRCALPHA)
+            pygame.draw.circle(particle_surface, color_with_alpha, (particle['size'] // 2, particle['size'] // 2), particle['size'] // 2)
+            self.screen.blit(particle_surface, (int(particle['x']), int(particle['y'])))
+
+    def fade_transition(self, fade_in=True, duration_ms=500):
+        """Create a fade transition effect."""
+        start_time = pygame.time.get_ticks()
+        fade_surface = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
+        fade_surface.fill(Colors.BLACK)
+
+        while True:
+            elapsed = pygame.time.get_ticks() - start_time
+            if elapsed >= duration_ms:
+                break
+
+            progress = elapsed / duration_ms
+            if fade_in:
+                alpha = int(255 * (1 - progress))
+            else:
+                alpha = int(255 * progress)
+
+            fade_surface.set_alpha(alpha)
+            self.screen.blit(fade_surface, (0, 0))
+            pygame.display.flip()
+            self.clock.tick(FPS)
+
+    def trigger_screen_shake(self):
+        """Trigger a screen shake effect."""
+        self.screen_shake_start = pygame.time.get_ticks()
+        self.screen_shake_active = True
+
+    def trigger_screen_flash(self, color):
+        """Trigger a screen flash effect with the given color."""
+        self.screen_flash_start = pygame.time.get_ticks()
+        self.screen_flash_color = color
+
+    def get_screen_offset(self):
+        """Calculate screen offset for shake effect."""
+        if not self.screen_shake_active:
+            return (0, 0)
+
+        elapsed = pygame.time.get_ticks() - self.screen_shake_start
+        if elapsed > Gameplay.SCREEN_SHAKE_DURATION_MS:
+            self.screen_shake_active = False
+            return (0, 0)
+
+        # Random shake with decreasing intensity
+        progress = elapsed / Gameplay.SCREEN_SHAKE_DURATION_MS
+        intensity = Gameplay.SCREEN_SHAKE_INTENSITY * (1 - progress)
+        import random
+        offset_x = random.randint(-int(intensity), int(intensity))
+        offset_y = random.randint(-int(intensity), int(intensity))
+        return (offset_x, offset_y)
+
+    def apply_screen_flash(self):
+        """Draw screen flash overlay if active."""
+        if self.screen_flash_color is None:
+            return
+
+        elapsed = pygame.time.get_ticks() - self.screen_flash_start
+        if elapsed > Gameplay.FLASH_DURATION_MS:
+            self.screen_flash_color = None
+            return
+
+        # Fade out the flash
+        progress = elapsed / Gameplay.FLASH_DURATION_MS
+        alpha = int(150 * (1 - progress))
+        flash_surface = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+        color_with_alpha = (*self.screen_flash_color[:3], alpha)
+        flash_surface.fill(color_with_alpha)
+        self.screen.blit(flash_surface, (0, 0))
+
     def run(self):
         """Main game loop with return to main menu on game over."""
         while True:  # Allow restarting the game after game over
@@ -994,33 +1311,50 @@ class Game:
                     running = False  # Exit the game loop but go back to the main menu
                     break
 
-                # Draw grid and units
-                self.grid.draw(self.screen)
+                # Get screen shake offset
+                shake_offset = self.get_screen_offset()
 
-                # Highlight range for the active unit
-                current_unit = self.units[self.current_unit_index]
-                Highlight.highlight_range(self, current_unit)
+                # Update particles
+                self.update_particles()
 
-                # Render fog of war
-                Highlight.draw_fog(self, self.screen)
+                # Apply shake offset to screen
+                if shake_offset != (0, 0):
+                    # Create a temporary surface for shaking
+                    game_surface = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
+                    game_surface.fill((0, 0, 0))
 
-                # Display pickups
-                self.pickup.draw_pickups(self.screen, self.visible_tiles)
+                    # Draw everything on temp surface
+                    self.grid.draw(game_surface)
+                    current_unit = self.units[self.current_unit_index]
+                    Highlight.highlight_range(self, current_unit)
+                    Highlight.draw_fog(self, game_surface)
+                    self.pickup.draw_pickups(game_surface, self.visible_tiles)
+                    self.draw_units()
+                    self.handle_turn()
+                    self.draw_info_panel()
+                    self.draw_abilities_bar()
+                    self.draw_key_counts()
 
-                # Display units
-                self.draw_units()
+                    # Blit with offset
+                    self.screen.blit(game_surface, shake_offset)
+                else:
+                    # Normal drawing without shake
+                    self.grid.draw(self.screen)
+                    current_unit = self.units[self.current_unit_index]
+                    Highlight.highlight_range(self, current_unit)
+                    Highlight.draw_fog(self, self.screen)
+                    self.pickup.draw_pickups(self.screen, self.visible_tiles)
+                    self.draw_units()
+                    self.handle_turn()
+                    self.draw_info_panel()
+                    self.draw_abilities_bar()
+                    self.draw_key_counts()
 
-                # Handle current unit's turn
-                self.handle_turn()
+                # Draw particles (always on top)
+                self.draw_particles()
 
-                # Show Info panel
-                self.draw_info_panel()
-
-                # Draw HUD
-                self.draw_abilities_bar()
-
-                # Draw keys
-                self.draw_key_counts()
+                # Apply screen flash effect
+                self.apply_screen_flash()
 
                 pygame.display.flip()
                 self.clock.tick(FPS)

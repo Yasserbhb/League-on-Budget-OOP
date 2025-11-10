@@ -57,6 +57,10 @@ class Unit:
         self.damage_taken = 0
         self.damage_taken_type = "physical"
 
+        # Smooth HP/Mana bar animations
+        self.displayed_health = float(health)
+        self.displayed_mana = float(mana)
+
         # Movement sounds
         self.grass_sound = pygame.mixer.Sound(Assets.MOVING)
         self.grass_sound.set_volume(Volume.MOVEMENT)
@@ -271,8 +275,12 @@ class Unit:
         rect = pygame.Rect(self.x * CELL_SIZE, self.y * CELL_SIZE, CELL_SIZE, CELL_SIZE)
         screen.blit(pygame.transform.scale(self.image, (CELL_SIZE, CELL_SIZE)), rect)
 
+        # Smooth HP/Mana bar animation
+        self.displayed_health += (self.health - self.displayed_health) * UI.HEALTH_BAR_ANIMATION_SPEED
+        self.displayed_mana += (self.mana - self.displayed_mana) * UI.HEALTH_BAR_ANIMATION_SPEED
+
         # Health bar settings
-        health_ratio = self.health / self.max_health
+        health_ratio = self.displayed_health / self.max_health
         health_bar_full_width = int(CELL_SIZE * UI.HEALTH_BAR_WIDTH_RATIO)
         health_bar_width = int(CELL_SIZE * health_ratio * UI.HEALTH_BAR_WIDTH_RATIO)
         health_bar_height = UI.HEALTH_BAR_HEIGHT

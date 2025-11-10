@@ -24,6 +24,8 @@ class Colors:
     GRAY = (50, 50, 50)
     LIGHT_GRAY = (200, 200, 200)
     GOLD = (200, 156, 56)
+    DARK_BLUE = (0, 0, 139)
+    CYAN = (0, 191, 255)
 
     # Team Colors
     BLUE_TEAM = (90, 120, 200)
@@ -79,6 +81,11 @@ class Gameplay:
     # Vision
     VISIBILITY_RANGE_BONUS = 2  # Beyond movement range
 
+    # Screen Effects
+    SCREEN_SHAKE_DURATION_MS = 200  # How long shake lasts
+    SCREEN_SHAKE_INTENSITY = 8  # Maximum shake offset in pixels
+    FLASH_DURATION_MS = 150  # How long screen flash lasts
+
 # UI Layout
 class UI:
     # Info Panel
@@ -97,6 +104,7 @@ class UI:
     HEALTH_BAR_MARGIN = 2
     HEALTH_BAR_BORDER_RADIUS = 3
     HEALTH_BAR_BORDER_THICKNESS = 1
+    HEALTH_BAR_ANIMATION_SPEED = 0.15  # How fast bars animate (0-1, higher = faster)
     HEALTH_SEGMENT_SIZE = 100  # HP per segment marker
 
     # Key Display
